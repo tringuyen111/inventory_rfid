@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 import type { Item, ScannedEPC } from '../types';
 import { useNavigation } from '../App';
@@ -60,35 +61,35 @@ const ScanScreen: React.FC<ScanScreenProps> = ({ item, registrationId, onConfirm
     const invalidScans = useMemo(() => scannedEPCs.filter(s => s.status !== 'valid'), [scannedEPCs]);
     
     const handleScanResults = useCallback(async (epcs: string[]) => {
-        if (epcs.length === 0) return;
-        
+        if (epcs.length === 0) {
+            return;
+        }
+
         setIsProcessing(true);
-        const newScans: ScannedEPC[] = [];
-        const currentEpcs = new Set(scannedEPCs.map(s => s.epc));
-        const uniqueNewEpcs = epcs.filter(epc => !currentEpcs.has(epc));
 
-        let hasInvalid = false;
-        for (const epc of uniqueNewEpcs) {
+        // Process all scanned EPCs to check their validity against the database
+        const processedEpcs = await Promise.all(epcs.map(async (epc) => {
             const { isDuplicate } = await checkEpcDuplicate(epc);
-            if (isDuplicate) {
-                newScans.push({ epc, status: 'invalid_duplicate_system' });
-                hasInvalid = true;
-            } else {
-                newScans.push({ epc, status: 'valid' });
+            return {
+                epc,
+                status: isDuplicate ? 'invalid_duplicate_system' : 'valid',
+            } as ScannedEPC;
+        }));
+
+        // Use a functional update to correctly merge new scans with existing ones, avoiding duplicates
+        setScannedEPCs(prevScans => {
+            const currentEpcs = new Set(prevScans.map(s => s.epc));
+            const newUniqueScans = processedEpcs.filter(scan => !currentEpcs.has(scan.epc));
+
+            if (newUniqueScans.length > 0 && newUniqueScans.some(s => s.status !== 'valid')) {
+                setActiveTab('invalid');
             }
-        }
 
-        if (newScans.length > 0) {
-            setScannedEPCs(prevScans => [...prevScans, ...newScans]);
-        }
+            return [...prevScans, ...newUniqueScans];
+        });
 
-        if (hasInvalid) {
-            setActiveTab('invalid');
-        }
-        
         setIsProcessing(false);
-
-    }, [scannedEPCs]);
+    }, []); // Empty dependency array ensures the function reference is stable
 
     const handleScan = () => {
         navigate('radarScan', { onScanComplete: handleScanResults });

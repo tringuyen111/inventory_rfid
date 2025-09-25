@@ -130,45 +130,39 @@ const InventoryScanScreen: React.FC<InventoryScanScreenProps> = ({ taskDetail, o
 
     const handleScanResults = useCallback((epcs: string[]) => {
         if (epcs.length === 0) return;
-        
+
         setIsProcessing(true);
-        const newScans: ScannedEpcUI[] = [];
-        const currentEpcs = new Set(scannedEPCs.map(s => s.epc));
 
-        const uniqueNewEpcs = epcs.filter(epc => !currentEpcs.has(epc));
+        setScannedEPCs(prevScans => {
+            const currentEpcs = new Set(prevScans.map(s => s.epc));
+            const uniqueNewEpcs = epcs.filter(epc => !currentEpcs.has(epc));
 
-        for (const epc of uniqueNewEpcs) {
-            let uiStatus: UIStatus;
-            const assetInfo = ALL_ASSETS_DB[epc];
-            let status: ScannedInventoryEPC['status'] = 'error_not_found';
-            
-            if (assetInfo) { // Found in system DB
-                if (expectedEpcMap.has(epc)) {
-                    uiStatus = 'valid';
-                    status = 'valid';
-                } else {
-                    uiStatus = 'invalid_surplus';
-                    status = 'surplus';
+            if (uniqueNewEpcs.length === 0) return prevScans;
+
+            const newScans: ScannedEpcUI[] = uniqueNewEpcs.map(epc => {
+                const assetInfo = ALL_ASSETS_DB[epc];
+                if (assetInfo) { // Found in system DB
+                    if (expectedEpcMap.has(epc)) {
+                        return { epc, status: 'valid', assetInfo, uiStatus: 'valid' };
+                    } else {
+                        return { epc, status: 'surplus', assetInfo, uiStatus: 'invalid_surplus' };
+                    }
+                } else { // Not in system DB
+                    return { epc, status: 'error_not_found', assetInfo: undefined, uiStatus: 'invalid_not_found' };
                 }
-            } else { // Not in system DB
-                uiStatus = 'invalid_not_found';
-                status = 'error_not_found';
-            }
-            newScans.push({ epc, status, assetInfo, uiStatus });
-        }
+            });
 
-        if (newScans.length > 0) {
-            setScannedEPCs(prevScans => [...prevScans, ...newScans]);
-        }
-        
-        const hasError = newScans.some(s => s.uiStatus === 'invalid_not_found');
-        const hasSurplus = newScans.some(s => s.uiStatus === 'invalid_surplus');
+            const hasError = newScans.some(s => s.uiStatus === 'invalid_not_found');
+            const hasSurplus = newScans.some(s => s.uiStatus === 'invalid_surplus');
 
-        if (hasError) setActiveTab('error');
-        else if (hasSurplus) setActiveTab('surplus');
-        
+            if (hasError) setActiveTab('error');
+            else if (hasSurplus) setActiveTab('surplus');
+
+            return [...prevScans, ...newScans];
+        });
+
         setIsProcessing(false);
-    }, [scannedEPCs, expectedEpcMap]);
+    }, [expectedEpcMap]);
 
     const matchedScans = useMemo(() => scannedEPCs.filter(s => s.uiStatus === 'valid'), [scannedEPCs]);
     const surplusScans = useMemo(() => scannedEPCs.filter(s => s.uiStatus === 'invalid_surplus'), [scannedEPCs]);

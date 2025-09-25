@@ -81,15 +81,27 @@ const App: React.FC = () => {
 
   const updateScannedData = useCallback((registrationId: string, itemId: string, scannedCount: number) => {
     setDeclarationData(prevData => {
-        const updatedDetails = { ...prevData };
-        const registration = updatedDetails[registrationId];
-        if (registration) {
-            const itemIndex = registration.items.findIndex(item => item.id === itemId);
-            if (itemIndex !== -1) {
-                registration.items[itemIndex].quantityScanned = scannedCount;
-            }
+        const registrationToUpdate = prevData[registrationId];
+        if (!registrationToUpdate) {
+            return prevData;
         }
-        return updatedDetails;
+
+        const updatedItems = registrationToUpdate.items.map(item => {
+            if (item.id === itemId) {
+                return { ...item, quantityScanned: scannedCount };
+            }
+            return item;
+        });
+
+        const updatedRegistration = {
+            ...registrationToUpdate,
+            items: updatedItems,
+        };
+
+        return {
+            ...prevData,
+            [registrationId]: updatedRegistration,
+        };
     });
   }, []);
 
