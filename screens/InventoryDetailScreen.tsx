@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { InventoryTaskDetail, InventoryItem } from '../types';
 import { useNavigation } from '../App';
@@ -64,8 +63,8 @@ const InventoryDetailScreen: React.FC<InventoryDetailScreenProps> = ({ taskDetai
     return (
         <Layout>
             <Header title="Chi Tiết Phiếu Kiểm Kê" showBackButton={true} rightAccessory={<SaveButton />} />
-            <div className="flex flex-col h-full">
-                <main className="flex-grow flex flex-col custom-scrollbar overflow-y-auto">
+            <div className="flex flex-col flex-grow overflow-hidden">
+                <main className="flex-grow custom-scrollbar overflow-y-auto">
                     <div className="p-5 bg-white border-b border-gray-200">
                         <h2 className="text-2xl font-bold text-gray-800 mb-4">{taskDetail.id}</h2>
                         <div className="grid grid-cols-2 gap-y-4 gap-x-2 mb-4">
@@ -91,12 +90,12 @@ const InventoryDetailScreen: React.FC<InventoryDetailScreenProps> = ({ taskDetai
                         </div>
                     </div>
 
-                    <div className="flex-grow p-5 bg-[#F8F9FE]">
+                    <div className="p-5 bg-[#F8F9FE]">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-bold text-gray-800">Danh sách tài sản</h3>
                             <span className="bg-gray-200 text-gray-700 text-sm font-bold px-2.5 py-1 rounded-md">{taskDetail.items.length}</span>
                         </div>
-                        <div className="space-y-3 pb-24">
+                        <div className="space-y-3 pb-4">
                             {taskDetail.items.map(item => (
                                 <ItemCard key={item.assetId} item={item} />
                             ))}
